@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parse Data</title>
+</head>
+<body>
+    <textarea id="input" rows="20" cols="80"></textarea>
+    <button onclick="parseData()">Parse Data</button>
+    <pre id="output"></pre>
+    <script>
+        function parseData() {
+            const inputText = document.getElementById('input').value;
+            const lines = inputText.split('\n');
+            const output = document.getElementById('output');
+            let schDlTpt = null;
+            let ulTpt = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes("SCH  DL Tpt :")) {
+                    const values = lines[i].match(/\d+\.\d+/g);
+                    schDlTpt = values[0];
+                    ulTpt = values[1];
+                } else if (lines[i].includes("UE-ID   CELL-ID   ON-SUL")) {
+                    output.innerHTML += `SCH  DL Tpt : ${schDlTpt}  UL Tpt ${ulTpt}\n`;
+                    output.innerHTML += parseUeData(lines, i);
+                }
+            }
+        }
+
+        function parseUeData(lines, startIndex) {
+            let output = "";
+            for (let i = startIndex + 1; i < lines.length; i++) {
+                const values = lines[i].match(/\d+/g);
+                if (values) {
+                    const ueId = values[0];
+                    const dlTx = values[3];
+                    const dlRetx = values[4];
+                    const dlMcs = values[13];
+                    const ulCrcSucc = values[18];
+                    const ulCrcFail = values[19];
+                    const ulMcs = values[22];
+
+                    output += `UE-ID= ${ueId}, DL-TPT=0.0000, UL-TPT=0.0000, DL-TX=${dlTx}, DL-RETX=${dlRetx}, DL-MCS=${dlMcs}, UL-CRC-SUCC=${ulCrcSucc}, UL-CRC-FAIL=${ulCrcFail}, UL-MCS=${ulMcs}\n`;
+                } else {
+                    break;
+                }
+            }
+            return output;
+        }
+    </script>
+</body>
+</html>

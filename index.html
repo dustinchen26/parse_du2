@@ -1,0 +1,111 @@
+<!-- 
+  Copyright © [2023] [Dustin_Chen]. All rights reserved.
+  Author: Dustin_Chen
+  Email:  Dustin_Chen@compal.com or chuhpsdustin@gmail.com
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parse the du_stats_XXX.txt DL/UL Tput, BLER, MCS</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.2;
+        }
+    </style>	
+	
+</head>
+<body>
+    <h2>Parse the du_stats_XXX.txt DL/UL Tput, BLER, MCS</h2>
+    <p style="margin: 0;">Author: Dustin_Chen, email: <a href="mailto:Dustin_Chen@compal.com"
+            style="line-height: 1;">Dustin_Chen@compal.com</a> or <a href="mailto:chuhpsdustin@gmail.com"
+            style="line-height: 1;">chuhpsdustin@gmail.com</a></p>
+    <ul>
+        <li><strong>Reference</strong>
+            <ul>
+                <li>Parse “cu_stats_XXX.txt” => <a href="https://dustinchen26.github.io/parse_cu"
+                        target="_blank">https://dustinchen26.github.io/parse_cu</a></li>
+                <li>Parse “du_stats_XXX.txt” 1 UE => <a href="https://dustinchen26.github.io/parse_du"
+                        target="_blank">https://dustinchen26.github.io/parse_du</a></li>
+                <li>Parse “du_stats_XXX.txt” multi-UE => <a href="https://dustinchen26.github.io/parse_du2"
+                        target="_blank">https://dustinchen26.github.io/parse_du2</a></li>
+            </ul>
+        </li>
+    </ul>	
+    <ul>
+        <li><strong>Please paste the whole du_stats_XXX.txt content below, then it will parse the DL/UL Tput, BLER,
+                MCS.</strong>
+            <ul>
+                <li>formula 1: DL-BLER = DL-RETX / (DL-RETX + DL-TX)</li>
+                <li>formula 2: UL-BLER = UL-CRC-FAIL / (UL-CRC-SUCC + UL-CRC-FAIL)</li>
+			</ul>
+			    <textarea id="input" rows="10" cols="80" placeholder="Paste text content here"></textarea>
+                <br>
+                <button onclick="parseData()">Parse</button>
+                <pre id="output"></pre>
+        </li>
+    </ul>	
+	
+
+    <script>
+        function parseData() {
+            const inputText = document.getElementById('input').value;
+            const lines = inputText.split('\n');
+            const output = document.getElementById('output');
+            let schDlTpt = null;
+            let ulTpt = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes("SCH  DL Tpt :")) {
+                    const values = lines[i].match(/\d+\.\d+/g);
+                    schDlTpt = values[0];
+                    ulTpt = values[1];
+                } else if (lines[i].includes("UE-ID   CELL-ID   ON-SUL")) {
+                    output.innerHTML += `\n<span style="color: blue;">SCH  DL Tpt : ${schDlTpt}</span>  <span style="color: red;">UL Tpt ${ulTpt}</span>\n`;
+                    output.innerHTML += parseUeData(lines, i);
+                }
+            }
+        }
+
+        function parseUeData(lines, startIndex) {
+            let output = "";
+            for (let i = startIndex + 1; i < lines.length; i++) {
+                const values = lines[i].match(/\d+/g);
+                if (values) {
+                    const ueId = values[0];
+                    const dlTx = values[3];
+                    const dlRetx = values[4];
+					
+					// calculate dl bler
+                    try {
+                        var dl_bler = parseFloat(dlRetx) / (parseFloat(dlTx) + parseFloat(dlRetx));
+                        dl_bler = isNaN(dl_bler) ? "NaN" : dl_bler.toFixed(4);
+                    } catch (error) {
+                        var dl_bler = "NaN";
+                    }
+					
+                    const dlMcs = values[13];
+                    const ulCrcSucc = values[18];
+                    const ulCrcFail = values[19];
+					
+					// calculate ul bler
+                    try {
+                        var ul_bler = parseFloat(ulCrcFail) / (parseFloat(ulCrcSucc) + parseFloat(ulCrcFail));
+                        ul_bler = isNaN(ul_bler) ? "NaN" : ul_bler.toFixed(4);
+                    } catch (error) {
+                        var ul_bler = "NaN";
+                    }
+					
+                    const ulMcs = values[22];
+
+                    output += `UE-ID= ${ueId.padEnd(7)}, DL-TX=${dlTx.padEnd(7)}, DL-RETX=${dlRetx.padEnd(7)}, <span style="color: blue;">DL-BLER=${dl_bler.padEnd(7)}</span>, DL-MCS=${dlMcs.padEnd(7)}, UL-CRC-SUCC=${ulCrcSucc.padEnd(7)}, UL-CRC-FAIL=${ulCrcFail.padEnd(7)}, <span style="color: red;">UL-BLER=${ul_bler.padEnd(7)}</span>,UL-MCS=${ulMcs.padEnd(7)}\n`;
+                } else {
+                    break;
+                }
+            }
+            return output;
+        }
+    </script>
+</body>
+</html>
